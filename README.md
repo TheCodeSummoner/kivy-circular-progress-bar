@@ -13,10 +13,10 @@ can be specified using kivy markup language.
 ## Properties (copied from in-code docs)
 
     1. thickness - thickness of the progress bar line (positive integer)
-    2. progress_colour - Colour value of the progress bar, check values accepted by kivy.graphics.Color
-    3. progress_colour - Colour value of the background bar, check values accepted by kivy.graphics.Color
-    4. cap_style - cap / edge of the bar, check the cap keyword argument in kivy.graphics.Line
-    5. cap_precision - bar car sharpness, check the cap_precision keyword argument in kivy.graphics.Line
+    2. cap_style - cap / edge of the bar, check the cap keyword argument in kivy.graphics.Line
+    3. cap_precision - bar car sharpness, check the cap_precision keyword argument in kivy.graphics.Line
+    4. progress_colour - Colour value of the progress bar, check values accepted by kivy.graphics.Color
+    5. background_colour - Colour value of the background bar, check values accepted by kivy.graphics.Color
     6. max - maximum progress (value corresponding to 100%)
     7. min - minimum progress (value corresponding to 0%) - note that this sets the starting value to this value
     8. value - progress value, can you use it initialise the bar to some other progress different from the minimum
