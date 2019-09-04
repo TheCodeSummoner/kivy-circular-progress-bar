@@ -32,6 +32,39 @@ Please see the examples to understand how each property works.
 The `_Example` class showcases 3 different loading bars - simply run the module to see it in action. Here is a short gif
 capturing how it looks like:
 
+![Amazing progress bars spinning right round](https://github.com/TheCodeSummoner/kivy-circular-progress-bar/blob/master/animated.gif "Circular Progress Bar example")
+
+The code styling the progress bars is available, but I will additionally include it here for convenience:
+
+```
+#:import Label kivy.core.text.Label           
+#:set _label Label(text="\\nI am a label\\ninjected in kivy\\nmarkup string :)\\nEnjoy! --={}=--")
+#:set _another_label Label(text="Loading...\\n{}%", font_size=10, color=(1,1,0.5,1), halign="center")
+FloatLayout:
+    CircularProgressBar:
+        pos: 50, 100
+        thickness: 15
+        cap_style: "RouND"
+        progress_colour: "010"
+        background_colour: "001"
+        cap_precision: 3
+        max: 150
+        min: 100
+        widget_size: 300
+        label: _label
+    CircularProgressBar
+        pos: 400, 100
+    CircularProgressBar
+        pos: 650, 100
+        cap_style: "SqUArE"
+        thickness: 5
+        progress_colour: 0.8, 0.8, 0.5, 1
+        cap_precision:100
+        max: 10
+        widget_size: 100
+        label: _another_label
+```
+
 ## Autorship
 
 Kacper Florianski
