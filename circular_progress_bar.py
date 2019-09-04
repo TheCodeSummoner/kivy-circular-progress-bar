@@ -10,12 +10,12 @@ Authorship: Kacper Florianski
 
 from kivy.uix.widget import Widget
 from kivy.app import App
-from kivy.properties import ObjectProperty
 from kivy.core.text import Label
 from kivy.lang.builder import Builder
 from kivy.graphics import Line, Rectangle, Color
 from kivy.clock import Clock
 from collections.abc import Iterable
+from math import ceil
 
 # This constant enforces the cap argument to be one of the caps accepted by the kivy.graphics.Line class
 _ACCEPTED_BAR_CAPS = {"round", "none", "square"}
@@ -44,17 +44,18 @@ class CircularProgressBar(Widget):
 
     The following keyword values are currently used:
 
-        1. bar_thickness - thickness of the progress bar line (positive integer)
-        2. bar_cap_style - cap / edge of the bar, check the cap keyword argument in kivy.graphics.Line
-        3. bar_progress_colour - Colour value of the progress bar, check values accepted by kivy.graphics.Color
-        4. bar_progress_colour - Colour value of the background bar, check values accepted by kivy.graphics.Color
-        5. bar_cap_precision - bar car sharpness, check the cap_precision keyword argument in kivy.graphics.Line
+        1. thickness - thickness of the progress bar line (positive integer)
+        2. cap_style - cap / edge of the bar, check the cap keyword argument in kivy.graphics.Line
+        3. cap_precision - bar car sharpness, check the cap_precision keyword argument in kivy.graphics.Line
+        4. progress_colour - Colour value of the progress bar, check values accepted by kivy.graphics.Color
+        5. background_colour - Colour value of the background bar, check values accepted by kivy.graphics.Color
         6. max - maximum progress (value corresponding to 100%)
         7. min - minimum progress (value corresponding to 0%) - note that this sets the starting value to this value
         8. value - progress value, can you use it initialise the bar to some other progress different from the minimum
         9. widget_size - size of the widget, use this to avoid issues with size, width, height etc.
         10. label - kivy.graphics.Label textually representing the progress - pass a label with an empty text field to
-        remove it, use "{}" as the progress value placeholder (it will be replaced with the progress via format func)
+        remove it, use "{}" as the progress value placeholder (it will be replaced via the format function)
+        11. value_normalized - get the current progress but normalised, or set it using a normalised value
 
     .. note::
 
@@ -63,6 +64,11 @@ class CircularProgressBar(Widget):
     .. warning::
 
         Apart from throwing kivy-specific errors, this class will throw TypeError and ValueError exceptions.
+
+    Additionally, this class provides aliases to match the kivy.uix.progressbar.ProgressBar naming convention:
+
+        1. get_norm_value - alternative name for get_normalised_progress
+        2. set_norm_value - alternative name for set_normalised_progress
     """
 
     def __init__(self, **kwargs):
@@ -85,6 +91,10 @@ class CircularProgressBar(Widget):
         # Store some label-related values to access them later
         self._default_label_text = _DEFAULT_TEXT_LABEL.text
         self._label_size = (0, 0)
+
+        # Create some aliases to match the progress bar method names
+        self.get_norm_value = self.get_normalised_progress
+        self.set_norm_value = self.set_normalised_progress
 
     @property
     def thickness(self):
@@ -157,7 +167,7 @@ class CircularProgressBar(Widget):
         if type(value) != int:
             raise TypeError("Maximum progress only accepts an integer value, not {}!".format(type(value)))
         elif value <= self._min_progress:
-            raise ValueError("Maximum progress ({}) must be greater than minimum progress ({})!"
+            raise ValueError("Maximum progress - {} - must be greater than minimum progress ({})!"
                              .format(value, self._min_progress))
         else:
             self._max_progress = value
@@ -171,7 +181,7 @@ class CircularProgressBar(Widget):
         if type(value) != int:
             raise TypeError("Minimum progress only accepts an integer value, not {}!".format(type(value)))
         elif value > self._max_progress:
-            raise ValueError("Minimum progress ({}) must be smaller than maximum progress ({})!"
+            raise ValueError("Minimum progress - {} - must be smaller than maximum progress ({})!"
                              .format(value, self._max_progress))
         else:
             self._min_progress = value
@@ -185,9 +195,9 @@ class CircularProgressBar(Widget):
     def value(self, value: int):
         if type(value) != int:
             raise TypeError("Progress must be an integer value, not {}!".format(type(value)))
-        elif self._min_progress > value > self._max_progress:
-            raise ValueError("Progress be between minimum ({}) and maximum ({}), not {}!"
-                             .format(value, self._min_progress, self._max_progress))
+        elif self._min_progress > value or value > self._max_progress:
+            raise ValueError("Progress must be between minimum ({}) and maximum ({}), not {}!"
+                             .format(self._min_progress, self._max_progress, value))
         elif value != self._value:
             self._value = value
             self._draw()
@@ -217,6 +227,28 @@ class CircularProgressBar(Widget):
             self._text_label = value
             self._default_label_text = value.text
 
+    @property
+    def value_normalized(self):
+        """
+        Alias the for getting the normalised progress.
+
+        Matches the property name in kivy.uix.progressbar.ProgressBar.
+
+        :return: Current progress normalised to match the percentage constants
+        """
+        return self.get_normalised_progress()
+
+    @value_normalized.setter
+    def value_normalized(self, value):
+        """
+        Alias the for getting the normalised progress.
+
+        Matches the property name in kivy.uix.progressbar.ProgressBar.
+
+        :return: Current progress normalised to match the percentage constants
+        """
+        self.set_normalised_progress(value)
+
     def _refresh_text(self):
         """
         Function used to refresh the text of the progress label.
@@ -227,14 +259,29 @@ class CircularProgressBar(Widget):
         self._text_label.refresh()
         self._label_size = self._text_label.texture.size
 
-    def get_normalised_progress(self):
+    def get_normalised_progress(self) -> float:
         """
         Function used to normalise the progress using the MIN/MAX normalisation
 
         :return: Current progress normalised to match the percentage constants
         """
-        return _NORMALISED_MIN + (self._value - self._min_progress) * (_NORMALISED_MAX - _NORMALISED_MIN) / \
-            (self._max_progress - self._min_progress)
+        return _NORMALISED_MIN + (self._value - self._min_progress) * (_NORMALISED_MAX - _NORMALISED_MIN) \
+            / (self._max_progress - self._min_progress)
+
+    def set_normalised_progress(self, norm_progress: int):
+        """
+        Function used to set the progress value from a normalised value, using MIN/MAX normalisation
+
+        :param norm_progress: Normalised value to update the progress with
+        """
+        if type(norm_progress) != float and type(norm_progress) != int:
+            raise TypeError("Normalised progress must be a float or an integer, not {}!".format(type(norm_progress)))
+        elif _NORMALISED_MIN > norm_progress or norm_progress > _NORMALISED_MAX:
+            raise ValueError("Normalised progress must be between the corresponding min ({}) and max ({}), {} is not!"
+                             .format(_NORMALISED_MIN, _NORMALISED_MAX, norm_progress))
+        else:
+            self.value = ceil(self._min_progress + (norm_progress - _NORMALISED_MIN) *
+                              (self._max_progress - self._min_progress) / (_NORMALISED_MAX - _NORMALISED_MIN))
 
     def _draw(self):
         """
@@ -274,11 +321,18 @@ class _Example(App):
 
     # Simple animation to show the circular progress bar in action
     def animate(self, dt):
-        for bar in self.root.children:
+        for bar in self.root.children[:-1]:
             if bar.value < bar.max:
                 bar.value += 1
             else:
                 bar.value = bar.min
+
+        # Showcase that setting the values using value_normalized property also works
+        bar = self.root.children[-1]
+        if bar.value < bar.max:
+            bar.value_normalized += 0.01
+        else:
+            bar.value_normalized = 0
 
     # Simple layout for easy example
     def build(self):
@@ -288,7 +342,7 @@ class _Example(App):
 #:set _another_label Label(text="Loading...\\n{}%", font_size=10, color=(1,1,0.5,1), halign="center")
 FloatLayout:
     CircularProgressBar:
-        pos: 0, 100
+        pos: 50, 100
         thickness: 15
         cap_style: "RouND"
         progress_colour: "010"
@@ -299,9 +353,9 @@ FloatLayout:
         widget_size: 300
         label: _label
     CircularProgressBar
-        pos: 340, 100
+        pos: 400, 100
     CircularProgressBar
-        pos: 580, 100
+        pos: 650, 100
         cap_style: "SqUArE"
         thickness: 5
         progress_colour: 0.8, 0.8, 0.5, 1
@@ -311,7 +365,7 @@ FloatLayout:
         label: _another_label''')
 
         # Animate the progress bar
-        Clock.schedule_interval(self.animate, 0.1)
+        Clock.schedule_interval(self.animate, 0.05)
         return container
 
 
